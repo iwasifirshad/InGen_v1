@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+
+server/uploads/
+server/prisma/dev.db
+server/prisma/dev.db-journal
+
+client/dist/
+.vite/

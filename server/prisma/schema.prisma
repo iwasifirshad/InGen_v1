@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Item {
+  id             Int           @id @default(autoincrement())
+  articleNumber  String        @unique
+  productName    String
+  imageUrl       String?
+  productSize    String?
+  material       String?
+  length         Float?
+  width          Float?
+  height         Float?
+  dimensionUnit  String?
+  netWeight      Float?
+  grossWeight    Float?
+  cbm            Float?
+  priceUSD       Float
+  currency       String?
+  exchangeRate   Float?
+  priceUpdatedAt DateTime?
+  createdAt      DateTime      @default(now())
+  invoiceItems   InvoiceItem[]
+}
+
+model Invoice {
+  id                   Int           @id @default(autoincrement())
+  invoiceNumber        String        @unique
+  invoiceDate          DateTime      @default(now())
+  customerName         String
+  consigneeAddress     String
+  countryOfOrigin      String?
+  countryOfDestination String?
+  preCarriedBy         String?
+  placeOfReceipt       String?
+  vesselFlightNo       String?
+  portOfLoading        String?
+  portOfDischarge      String?
+  finalDestination     String?
+  paymentTerms         String?
+  totalUSD             Float
+  items                InvoiceItem[]
+}
+
+model InvoiceItem {
+  id            Int     @id @default(autoincrement())
+  invoiceId     Int
+  itemId        Int
+  articleNumber String
+  productName   String
+  productSize   String?
+  material      String?
+  netWeight     Float?
+  quantity      Int
+  unitPrice     Float
+  amount        Float
+  invoice       Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  item          Item    @relation(fields: [itemId], references: [id])
+}
