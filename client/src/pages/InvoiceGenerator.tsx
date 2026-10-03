@@ -7,20 +7,13 @@ import {
 
 const fieldRow = { display: 'flex', flexDirection: { xs: 'column', md: 'row' } as const, gap: 2 };
 import DeleteIcon from '@mui/icons-material/Delete';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import { Item, Invoice } from '../types';
+import TableViewIcon from '@mui/icons-material/TableView';
+import { Item } from '../types';
 import { api } from '../api/client';
 import ItemPicker from '../components/ItemPicker';
 
 type Line = {
-  itemId: number;
-  articleNumber: string;
-  productName: string;
-  productSize: string | null;
-  imageUrl: string | null;
-  material: string | null;
-  netWeight: number | null;
-  unitPrice: number;
+  item: Item;
   quantity: number;
 };
 
@@ -54,14 +47,7 @@ export default function InvoiceGenerator() {
     setLines((prev) => [
       ...prev,
       {
-        itemId: it.id,
-        articleNumber: it.articleNumber,
-        productName: it.productName,
-        productSize: it.productSize,
-        imageUrl: it.imageUrl,
-        material: it.material,
-        netWeight: it.netWeight,
-        unitPrice: it.priceUSD,
+        item: it,
         quantity: 1
       }
     ]);
@@ -73,25 +59,21 @@ export default function InvoiceGenerator() {
 
   const remove = (idx: number) => setLines((prev) => prev.filter((_, i) => i !== idx));
 
-  const total = lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0);
+  const total = lines.reduce((s, l) => s + l.quantity * l.item.priceUSD, 0);
 
   const submit = async () => {
-    if (!meta.customerName.trim() || !meta.consigneeAddress.trim()) {
-      setToast({ msg: 'Customer name and consignee address are required', severity: 'error' });
-      return;
-    }
     if (lines.length === 0) {
       setToast({ msg: 'Add at least one item', severity: 'error' });
       return;
     }
     setSubmitting(true);
     try {
-      const created = await api.post<Invoice>('/api/invoices', {
-        ...meta,
-        items: lines.map((l) => ({ itemId: l.itemId, quantity: l.quantity }))
+      const { generateQuotationExcel } = await import('../services/quotationExcel');
+      await generateQuotationExcel(lines.map((line) => line.item), meta.invoiceDate);
+      setToast({
+        msg: `Quotation downloaded for ${lines.length} product${lines.length === 1 ? '' : 's'}`,
+        severity: 'success'
       });
-      setToast({ msg: `Invoice ${created.invoiceNumber} created — opening PDF`, severity: 'success' });
-      window.open(`/api/invoices/${created.id}/pdf`, '_blank');
       setLines([]);
       setMeta({
         customerName: '',
@@ -116,21 +98,20 @@ export default function InvoiceGenerator() {
 
   return (
     <Box>
-      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>New Invoice</Typography>
+      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>New Quotation</Typography>
 
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Invoice Information</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Quotation Information</Typography>
         <Stack spacing={2}>
           <Box sx={fieldRow}>
             <TextField
               label="Customer Name"
-              required
               fullWidth
               value={meta.customerName}
               onChange={(e) => setMeta({ ...meta, customerName: e.target.value })}
             />
             <TextField
-              label="Invoice Date"
+              label="Quotation Date"
               type="date"
               fullWidth
               InputLabelProps={{ shrink: true }}
@@ -140,7 +121,6 @@ export default function InvoiceGenerator() {
           </Box>
           <TextField
             label="Consignee Address"
-            required
             fullWidth
             multiline
             rows={3}
@@ -247,16 +227,16 @@ export default function InvoiceGenerator() {
               <TableRow key={idx}>
                 <TableCell>
                   <Avatar
-                    src={l.imageUrl || undefined}
+                    src={l.item.imageUrl || undefined}
                     variant="rounded"
                     sx={{ width: 44, height: 44, bgcolor: 'grey.200', fontSize: 11 }}
                   >IMG</Avatar>
                 </TableCell>
-                <TableCell><strong>{l.articleNumber}</strong></TableCell>
+                <TableCell><strong>{l.item.articleNumber}</strong></TableCell>
                 <TableCell>
-                  <Box>{l.productName}</Box>
-                  {l.productSize && (
-                    <Box sx={{ fontSize: 12, color: 'text.secondary' }}>{l.productSize}</Box>
+                  <Box>{l.item.productName}</Box>
+                  {l.item.productSize && (
+                    <Box sx={{ fontSize: 12, color: 'text.secondary' }}>{l.item.productSize}</Box>
                   )}
                 </TableCell>
                 <TableCell align="right">
@@ -269,8 +249,8 @@ export default function InvoiceGenerator() {
                     sx={{ width: 80 }}
                   />
                 </TableCell>
-                <TableCell align="right">${l.unitPrice.toFixed(2)}</TableCell>
-                <TableCell align="right"><strong>${(l.quantity * l.unitPrice).toFixed(2)}</strong></TableCell>
+                <TableCell align="right">${l.item.priceUSD.toFixed(2)}</TableCell>
+                <TableCell align="right"><strong>${(l.quantity * l.item.priceUSD).toFixed(2)}</strong></TableCell>
                 <TableCell>
                   <IconButton size="small" color="error" onClick={() => remove(idx)}>
                     <DeleteIcon fontSize="small" />
@@ -293,11 +273,11 @@ export default function InvoiceGenerator() {
         <Button
           variant="contained"
           size="large"
-          startIcon={<PictureAsPdfIcon />}
+          startIcon={<TableViewIcon />}
           disabled={submitting}
           onClick={submit}
         >
-          {submitting ? 'Generating...' : 'Generate Invoice'}
+          {submitting ? 'Generating Quotation...' : 'Generate Quotation'}
         </Button>
       </Stack>
 

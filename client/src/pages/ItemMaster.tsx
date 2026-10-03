@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Box, Button, Stack, Typography, Avatar, IconButton, Snackbar, Alert } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { DataGrid, GridColDef, GridToolbarQuickFilter, GridToolbarContainer } from '@mui/x-data-grid';
 import { Item } from '../types';
 import { api } from '../api/client';
 import ItemFormDialog from '../components/ItemFormDialog';
+import BulkImportDialog from '../components/BulkImportDialog';
 
 function Toolbar() {
   return (
@@ -20,6 +22,7 @@ export default function ItemMaster() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
   const [toast, setToast] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
 
@@ -104,13 +107,22 @@ export default function ItemMaster() {
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>Item Master</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => { setEditing(null); setDialogOpen(true); }}
-        >
-          Add New Product
-        </Button>
+        <Stack direction="row" spacing={1.5}>
+          <Button
+            variant="contained"
+            startIcon={<UploadFileIcon />}
+            onClick={() => setBulkDialogOpen(true)}
+          >
+            Bulk Import
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => { setEditing(null); setDialogOpen(true); }}
+          >
+            Add New Product
+          </Button>
+        </Stack>
       </Stack>
       <Box sx={{ bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
         <DataGrid
@@ -130,6 +142,12 @@ export default function ItemMaster() {
         initial={editing}
         onClose={() => setDialogOpen(false)}
         onSaved={() => { load(); setToast({ msg: 'Saved', severity: 'success' }); }}
+      />
+      <BulkImportDialog
+        open={bulkDialogOpen}
+        existingItems={items}
+        onClose={() => setBulkDialogOpen(false)}
+        onImported={(count) => { load(); setToast({ msg: `${count} products imported`, severity: 'success' }); }}
       />
       <Snackbar
         open={!!toast}

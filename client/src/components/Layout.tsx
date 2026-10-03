@@ -5,7 +5,7 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 
 const links = [
   { to: '/', label: 'Item Master' },
-  { to: '/invoices/new', label: 'New Invoice' },
+  { to: '/invoices/new', label: 'New Quotation' },
   { to: '/invoices', label: 'Invoices' }
 ];
 

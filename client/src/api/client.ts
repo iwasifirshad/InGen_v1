@@ -1,11 +1,15 @@
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
+    let details: unknown;
     try {
       const body = await res.json();
       msg = body.error || msg;
+      details = body.errors;
     } catch { /* ignore */ }
-    throw new Error(msg);
+    const error = new Error(msg) as Error & { details?: unknown };
+    error.details = details;
+    throw error;
   }
   if (res.status === 204) return undefined as T;
   return res.json();
